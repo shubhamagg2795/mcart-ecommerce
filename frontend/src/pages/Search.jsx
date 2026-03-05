@@ -18,6 +18,7 @@ function Search() {
 
   useEffect(() => {
     loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -34,7 +35,7 @@ function Search() {
         />
 
         <button
-          style={{marginLeft: "10px"}}
+          style={{ marginLeft: "10px" }}
           onClick={loadProducts}
         >
           Search
