@@ -5,14 +5,23 @@ function Header() {
   const auth = useAuth();
 
   return (
-    <div style={{ padding:"12px", background:"#222", color:"#fff" }}>
+    <div className="header">
+      <div className="container header-inner">
 
-      <h2>MCART E-Commerce</h2>
+        <h2>MCART</h2>
 
-      <button onClick={() => auth.signoutRedirect()}>
-        Logout
-      </button>
+        <div>
+          {auth.user?.profile?.email}
 
+          <button
+            style={{marginLeft: "20px"}}
+            onClick={() => auth.removeUser()}
+          >
+            Logout
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }

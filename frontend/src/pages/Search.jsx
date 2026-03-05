@@ -1,47 +1,67 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Search() {
 
-  const [query, setQuery] = useState("");
   const [products, setProducts] = useState([]);
+  const [query, setQuery] = useState("");
 
-  const searchProducts = async () => {
+  const navigate = useNavigate();
 
-    const res = await fetch(`/api/products?q=${query}`, {
-      method: "GET",
-      credentials: "include"
-    });
+  const loadProducts = async () => {
 
+    const res = await fetch(`/api/products?q=${query}`);
     const data = await res.json();
+
     setProducts(data);
   };
 
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
   return (
-    <div>
+    <div className="container">
 
-      <h3>Search Products</h3>
+      <div className="search-box">
 
-      <input
-        placeholder="Search..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+        <h2>Search Products</h2>
 
-      <button onClick={searchProducts}>
-        Search
-      </button>
+        <input
+          placeholder="Search products..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
 
-      <div style={{marginTop:"20px"}}>
+        <button
+          style={{marginLeft: "10px"}}
+          onClick={loadProducts}
+        >
+          Search
+        </button>
+
+      </div>
+
+      <div className="product-grid">
 
         {products.map((p) => (
-          <div key={p.id} style={{padding:"10px"}}>
 
-            <Link to={`/product/${p.id}`}>
-              {p.name}
-            </Link>
+          <div
+            key={p.id}
+            className="product-card"
+            onClick={() => navigate(`/product/${p.id}`)}
+          >
+
+            <h3>{p.name}</h3>
+
+            <p>{p.description}</p>
+
+            <div className="product-price">
+              ${p.price}
+            </div>
 
           </div>
+
         ))}
 
       </div>

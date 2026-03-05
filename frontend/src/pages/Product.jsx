@@ -10,12 +10,9 @@ function Product() {
 
     const loadProduct = async () => {
 
-      const res = await fetch(`/api/products/${id}`, {
-        method: "GET",
-        credentials: "include"
-      });
-
+      const res = await fetch(`/api/products/${id}`);
       const data = await res.json();
+
       setProduct(data);
     };
 
@@ -28,13 +25,23 @@ function Product() {
   }
 
   return (
-    <div>
+    <div className="container">
 
-      <h2>{product.name}</h2>
+      <div className="product-detail">
 
-      <p>{product.description}</p>
+        <h1>{product.name}</h1>
 
-      <h3>Price: ${product.price}</h3>
+        <p>{product.description}</p>
+
+        <h2 style={{color: "green"}}>
+          ${product.price}
+        </h2>
+
+        <button style={{marginTop: "20px"}}>
+          Add to Cart
+        </button>
+
+      </div>
 
     </div>
   );

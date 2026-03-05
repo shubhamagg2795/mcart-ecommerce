@@ -1,3 +1,4 @@
+import "./styles.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "react-oidc-context";
 import { useEffect } from "react";
