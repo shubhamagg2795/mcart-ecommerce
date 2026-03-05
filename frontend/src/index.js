@@ -8,8 +8,8 @@ const cognitoAuthConfig = {
   authority:
     "https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_w11q1SuUr",
   client_id: "5itpocjgtbnrbktndqpqpn1ivm",
-  redirect_uri: "https://d1koynn5e9sgkm.cloudfront.net",
-  post_logout_redirect_uri: "https://d1koynn5e9sgkm.cloudfront.net/",
+  redirect_uri: window.location.origin,
+  post_logout_redirect_uri: window.location.origin,
   response_type: "code",
   scope: "openid email phone",
 
