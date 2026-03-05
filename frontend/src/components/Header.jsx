@@ -9,7 +9,6 @@ function Header() {
       <div className="container header-inner">
 
         <h2>MCART</h2>
-        <h3>Test</h3>
 
         <div>
           {auth.user?.profile?.email}
