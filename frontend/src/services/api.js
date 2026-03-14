@@ -25,9 +25,7 @@ export const getProductById = async (id) => {
 };
 
 export const getBackendVersion = async () => {
-  const res = await fetch(`/api/products/version`, {
-    method: "GET"
-  });
+  const res = await fetch(`/api/version`);
 
   if (!res.ok) {
     throw new Error("Failed to fetch backend version");
