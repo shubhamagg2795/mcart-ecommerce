@@ -20,12 +20,12 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v3
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -46,12 +46,12 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v3
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -60,11 +60,14 @@ jobs:
 
       - name: Build React app
         env:
-          REACT_APP_API_BASE: ${{ secrets.REACT_APP_API_BASE }}
+          REACT_APP_PRODUCT_API: ${{ secrets.REACT_APP_PRODUCT_API }}
+          REACT_APP_CART_API: ${{ secrets.REACT_APP_CART_API }}
+          REACT_APP_ORDER_API: ${{ secrets.REACT_APP_ORDER_API }}
+          REACT_APP_PAYMENT_API: ${{ secrets.REACT_APP_PAYMENT_API }}
         run: npm run build
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: react-build
           path: frontend/build
@@ -81,19 +84,19 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v3
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit (non-blocking)
+      - name: Run npm audit
         run: npm audit --audit-level=critical || true
 
 # ─────────────────────────────────────────────
@@ -105,13 +108,13 @@ jobs:
     needs: [build, security]
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: react-build
           path: build
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -121,7 +124,7 @@ jobs:
         run: aws s3 sync build/ s3://mcart-frontend-shubham --delete
 
 # ─────────────────────────────────────────────
-# STAGE 5 — Invalidate CloudFront Cache
+# STAGE 5 — Invalidate CloudFront
 # ─────────────────────────────────────────────
   invalidate-cdn:
     name: "Stage 5 — Invalidate CloudFront"
@@ -129,7 +132,7 @@ jobs:
     needs: deploy-s3
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -141,10 +144,10 @@ jobs:
             --distribution-id E1MG1T9QILPD2R \
             --paths "/*"
 
-      - name: Print deployment summary
+      - name: Deployment summary
         run: |
           echo "========================================"
-          echo "  MCart deployment complete!"
+          echo "  MCart deployed successfully!"
           echo "  Commit : ${{ github.sha }}"
           echo "  Branch : ${{ github.ref_name }}"
           echo "  Time   : $(date -u)"
