@@ -1,50 +1,61 @@
 import "./styles.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "react-oidc-context";
-import { useEffect } from "react";
 
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import Search from "./pages/Search";
 import Product from "./pages/Product";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import Payment from "./pages/Payment";
+import OrderConfirmation from "./pages/OrderConfirmation";
 
 function App() {
-
   const auth = useAuth();
 
-  useEffect(() => {
-    if (!auth.isLoading && !auth.isAuthenticated) {
-      auth.signinRedirect();
-    }
-  }, [auth]);
-
   if (auth.isLoading) {
-    return <div>Loading authentication...</div>;
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (auth.error) {
-    return <div>Error: {auth.error.message}</div>;
+    return (
+      <div className="loading-screen">
+        <p style={{ color: "#e00" }}>Auth error: {auth.error.message}</p>
+        <button className="btn-primary" onClick={() => auth.signinRedirect()}>
+          Try Again
+        </button>
+      </div>
+    );
   }
 
+  // KEY CHANGE: show OUR login page instead of redirecting to Cognito hosted UI
   if (!auth.isAuthenticated) {
-    return <div>Redirecting to login...</div>;
+    return <Login />;
   }
 
   return (
     <BrowserRouter>
-
       <Header />
-
-      <Routes>
-
-        <Route path="/" element={<Search />} />
-
-        <Route path="/login" element={<Login />} />
-
-        <Route path="/product/:id" element={<Product />} />
-
-      </Routes>
-
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/product/:id" element={<Product />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/payment" element={<Payment />} />
+          <Route path="/order-confirmation" element={<OrderConfirmation />} />
+        </Routes>
+      </main>
+      <Footer />
     </BrowserRouter>
   );
 }

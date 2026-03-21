@@ -1,11 +1,13 @@
 import { useAuth } from "react-oidc-context";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getBackendVersion } from "../services/api";
 
 function Header() {
-
   const auth = useAuth();
-  const [backendVersion, setBackendVersion] = useState("");
+  const navigate = useNavigate();
+  const [backendVersion, setBackendVersion] = useState("Loading...");
+  const [guid, setGuid] = useState(localStorage.getItem("demo-guid") || "");
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -16,34 +18,72 @@ function Header() {
         setBackendVersion("Backend unavailable");
       }
     };
-
     fetchVersion();
   }, []);
 
+  const handleGuidChange = (e) => {
+    const val = e.target.value;
+    setGuid(val);
+    localStorage.setItem("demo-guid", val);
+  };
+
   return (
-    <div className="header">
-      <div className="container header-inner">
+    <header className="header">
+      <div className="header-inner">
 
-        <h2>MCART</h2>
-
-        {/* 👇 Deployment info */}
-        <div style={{fontSize:"12px", color:"gray"}}>
-          Backend: {backendVersion} | React: v1
+        {/* Logo */}
+        <div className="header-logo" onClick={() => navigate("/")}>
+          M<span>CART</span>
         </div>
 
-        <div>
-          {auth.user?.profile?.email}
+        {/* Deployment info + GUID field — the key part for CI/CD demo */}
+        <div className="header-meta">
+          <div>Backend: {backendVersion} | React: v1</div>
+          <div className="guid-row">
+            Demo GUID:&nbsp;
+            <input
+              value={guid}
+              onChange={handleGuidChange}
+              placeholder="Paste GUID here..."
+              style={{
+                background: "transparent",
+                border: "1px solid #555",
+                borderRadius: "4px",
+                color: "#f0a500",
+                fontSize: "12px",
+                padding: "2px 8px",
+                width: "200px",
+                outline: "none"
+              }}
+            />
+          </div>
+        </div>
 
-          <button
-            style={{marginLeft: "20px"}}
-            onClick={() => auth.removeUser()}
-          >
+        {/* Actions */}
+        <div className="header-actions">
+          <span className="header-email">{auth.user?.profile?.email}</span>
+          <button className="btn-cart" onClick={() => navigate("/cart")}>
+            🛒 Cart
+          </button>
+          <button className="btn-logout" onClick={() => auth.removeUser()}>
             Logout
           </button>
         </div>
 
       </div>
-    </div>
+
+      {/* Nav */}
+      <nav className="nav-bar">
+        <div className="nav-inner">
+          <span className="nav-link" onClick={() => navigate("/")}>Home</span>
+          <span className="nav-link" onClick={() => navigate("/search")}>All Products</span>
+          <span className="nav-link" onClick={() => navigate("/search?q=smartphone")}>Smartphones</span>
+          <span className="nav-link" onClick={() => navigate("/search?q=laptop")}>Laptops</span>
+          <span className="nav-link" onClick={() => navigate("/search?q=headphones")}>Headphones</span>
+          <span className="nav-link" onClick={() => navigate("/search?q=camera")}>Cameras</span>
+        </div>
+      </nav>
+    </header>
   );
 }
 

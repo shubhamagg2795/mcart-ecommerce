@@ -17,7 +17,11 @@ const cognitoAuthConfig = {
     store: window.localStorage,
   }),
 
-  // 🔥 THIS FIXES REFRESH ISSUE
+  // Disable automatic silent signin attempts on load
+  // This prevents the 404 error when there's no active session
+  automaticSilentRenew: false,
+  loadUserInfo: false,
+
   onSigninCallback: () => {
     window.history.replaceState(
       {},
@@ -31,7 +35,10 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
   <React.StrictMode>
-    <AuthProvider {...cognitoAuthConfig}>
+    <AuthProvider
+      {...cognitoAuthConfig}
+      skipSigninCallback={window.location.search === ""}
+    >
       <App />
     </AuthProvider>
   </React.StrictMode>
