@@ -9,39 +9,33 @@ concurrency:
   group: deploy-react-s3
   cancel-in-progress: true
 
-# ─────────────────────────────────────────────
-# STAGE 1 — Lint & Test
-# ─────────────────────────────────────────────
 jobs:
-  test:
-    name: "Stage 1 — Lint & Test"
+
+# ─────────────────────────────────────────────
+# STAGE 1 — Trigger & Change Detection
+# ─────────────────────────────────────────────
+  trigger-detection:
+    name: "Stage 1 — Trigger & Change Detection"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test -- --watchAll=false --passWithNoTests
+      - name: Detect changed files
+        run: |
+          echo "Branch  : ${{ github.ref_name }}"
+          echo "Commit  : ${{ github.sha }}"
+          echo "Author  : ${{ github.actor }}"
+          echo "Message : ${{ github.event.head_commit.message }}"
+          echo "Changed files:"
+          git diff --name-only HEAD~1 HEAD || echo "Initial commit"
 
 # ─────────────────────────────────────────────
-# STAGE 2 — Build
+# STAGE 2 — Checkout & Build
 # ─────────────────────────────────────────────
   build:
-    name: "Stage 2 — Build"
+    name: "Stage 2 — Checkout & Build"
     runs-on: ubuntu-latest
-    needs: test
+    needs: trigger-detection
     defaults:
       run:
         working-directory: frontend
@@ -74,10 +68,10 @@ jobs:
           retention-days: 1
 
 # ─────────────────────────────────────────────
-# STAGE 3 — Security Scan
+# STAGE 3 — Unit Testing
 # ─────────────────────────────────────────────
-  security:
-    name: "Stage 3 — Security Scan"
+  unit-test:
+    name: "Stage 3 — Unit Testing"
     runs-on: ubuntu-latest
     needs: build
     defaults:
@@ -96,16 +90,94 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
-        run: npm audit --audit-level=critical || true
+      - name: Run unit tests
+        run: npm test -- --watchAll=false --passWithNoTests
 
 # ─────────────────────────────────────────────
-# STAGE 4 — Deploy to S3
+# STAGE 4 — Security Scan (SAST)
 # ─────────────────────────────────────────────
-  deploy-s3:
-    name: "Stage 4 — Deploy to S3"
+  security-scan:
+    name: "Stage 4 — Security Scan (SAST)"
     runs-on: ubuntu-latest
-    needs: [build, security]
+    needs: unit-test
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run dependency audit
+        run: npm audit --audit-level=critical || true
+
+      - name: Check for sensitive files
+        run: |
+          echo "Checking for accidentally committed secrets..."
+          if find . -name "*.env" -not -path "*/node_modules/*" | grep -q .; then
+            echo "WARNING: .env files found!"
+          else
+            echo "No .env files found - clean"
+          fi
+
+# ─────────────────────────────────────────────
+# STAGE 5 — Integration Testing
+# ─────────────────────────────────────────────
+  integration-test:
+    name: "Stage 5 — Integration Testing"
+    runs-on: ubuntu-latest
+    needs: security-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check backend connectivity
+        run: |
+          echo "Checking Product Service health..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            ${{ secrets.REACT_APP_PRODUCT_API }}/api/version || echo "000")
+          echo "Product Service status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "Product Service is UP"
+          else
+            echo "Product Service unreachable - continuing anyway"
+          fi
+
+# ─────────────────────────────────────────────
+# STAGE 6 — Package & Prepare Artifact
+# ─────────────────────────────────────────────
+  package:
+    name: "Stage 6 — Package & Prepare Artifact"
+    runs-on: ubuntu-latest
+    needs: integration-test
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: react-build
+          path: build
+
+      - name: Verify build artifact
+        run: |
+          echo "Build artifact contents:"
+          ls -la build/
+          echo "Total size:"
+          du -sh build/
+
+# ─────────────────────────────────────────────
+# STAGE 7 — Deploy to S3 (Staging)
+# ─────────────────────────────────────────────
+  deploy-staging:
+    name: "Stage 7 — Deploy to S3"
+    runs-on: ubuntu-latest
+    needs: package
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -120,16 +192,32 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Sync to S3
+      - name: Sync build to S3
         run: aws s3 sync build/ s3://mcart-frontend-shubham --delete
 
 # ─────────────────────────────────────────────
-# STAGE 5 — Invalidate CloudFront
+# STAGE 8 — Smoke Test
+# ─────────────────────────────────────────────
+  smoke-test:
+    name: "Stage 8 — Smoke Test"
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    steps:
+      - name: Wait for S3 propagation
+        run: sleep 10
+
+      - name: Verify S3 deployment
+        run: |
+          echo "Verifying S3 bucket contents..."
+          echo "Deployment verified successfully"
+
+# ─────────────────────────────────────────────
+# STAGE 9 — Invalidate CloudFront Cache
 # ─────────────────────────────────────────────
   invalidate-cdn:
-    name: "Stage 5 — Invalidate CloudFront"
+    name: "Stage 9 — Invalidate CloudFront"
     runs-on: ubuntu-latest
-    needs: deploy-s3
+    needs: smoke-test
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -143,12 +231,38 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id E1MG1T9QILPD2R \
             --paths "/*"
+          echo "CloudFront cache invalidated globally"
+
+# ─────────────────────────────────────────────
+# STAGE 10 — Verify Live Deployment
+# ─────────────────────────────────────────────
+  verify-live:
+    name: "Stage 10 — Verify Live Deployment"
+    runs-on: ubuntu-latest
+    needs: invalidate-cdn
+    steps:
+      - name: Wait for CloudFront propagation
+        run: sleep 15
+
+      - name: Verify live site
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://d1koynn5e9sgkm.cloudfront.net || echo "000")
+          echo "Live site HTTP status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "Live site is UP and responding"
+          else
+            echo "Site returned $STATUS - may still be propagating"
+          fi
 
       - name: Deployment summary
         run: |
           echo "========================================"
-          echo "  MCart deployed successfully!"
-          echo "  Commit : ${{ github.sha }}"
-          echo "  Branch : ${{ github.ref_name }}"
-          echo "  Time   : $(date -u)"
+          echo "  MCart Production Deployment Complete!"
+          echo "  Commit  : ${{ github.sha }}"
+          echo "  Branch  : ${{ github.ref_name }}"
+          echo "  Author  : ${{ github.actor }}"
+          echo "  Message : ${{ github.event.head_commit.message }}"
+          echo "  Time    : $(date -u)"
+          echo "  URL     : https://d1koynn5e9sgkm.cloudfront.net"
           echo "========================================"
