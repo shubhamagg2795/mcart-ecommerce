@@ -24,6 +24,7 @@ function Cart() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchCart(); }, []);
 
   const updateQty = async (productId, delta) => {
