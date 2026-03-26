@@ -38,7 +38,7 @@ function Header() {
 
         {/* Deployment info + GUID field — the key part for CI/CD demo */}
         <div className="header-meta">
-          <div>Backend: {backendVersion} | React: v2</div>
+          <div>Backend: {backendVersion} | React: v1</div>
           <div className="guid-row">
             Demo GUID:&nbsp;
             <input
