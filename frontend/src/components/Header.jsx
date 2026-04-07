@@ -40,22 +40,7 @@ function Header() {
         <div className="header-meta">
           <div>Backend: {backendVersion} | React: v1</div>
           <div className="guid-row">
-            Demo GUID:&nbsp;
-            <input
-              value={guid}
-              onChange={handleGuidChange}
-              placeholder="Paste GUID here..."
-              style={{
-                background: "transparent",
-                border: "1px solid #555",
-                borderRadius: "4px",
-                color: "#f0a500",
-                fontSize: "12px",
-                padding: "2px 8px",
-                width: "200px",
-                outline: "none"
-              }}
-            />
+             Demo GUID: 123e4567-e89b-12d3-a456-426614174000
           </div>
         </div>
 
