@@ -7,7 +7,6 @@ function Header() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [backendVersion, setBackendVersion] = useState("Loading...");
-  const [guid, setGuid] = useState(localStorage.getItem("demo-guid") || "");
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -20,12 +19,6 @@ function Header() {
     };
     fetchVersion();
   }, []);
-
-  const handleGuidChange = (e) => {
-    const val = e.target.value;
-    setGuid(val);
-    localStorage.setItem("demo-guid", val);
-  };
 
   return (
     <header className="header">
@@ -40,7 +33,7 @@ function Header() {
         <div className="header-meta">
           <div>Backend: {backendVersion} | React: v1</div>
           <div className="guid-row">
-             Demo GUID: 123e4567-e89b-12d3-a456-426614174000
+             Demo GUID: INITIAL-DEMO GUID
           </div>
         </div>
 
