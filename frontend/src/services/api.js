@@ -1,6 +1,24 @@
 const PRODUCT_API = process.env.REACT_APP_PRODUCT_API || "http://localhost:8080";
 const CART_API    = process.env.REACT_APP_CART_API    || "http://localhost:8081";
 
+// Helper function to get Cognito access token from localStorage
+const getAccessToken = () => {
+  const keyPrefix = 'oidc.user:https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_w11q1SuUr:';
+  const allKeys = Object.keys(localStorage);
+  const cognitoKey = allKeys.find(k => k.startsWith(keyPrefix));
+  if (!cognitoKey) return null;
+
+  const userData = localStorage.getItem(cognitoKey);
+  if (!userData) return null;
+
+  try {
+    const parsed = JSON.parse(userData);
+    return parsed.access_token || null;
+  } catch {
+    return null;
+  }
+};
+
 // ── Timeout Helper ──
 const fetchWithTimeout = (url, options = {}, timeout = 3000) => {
   return Promise.race([
@@ -24,24 +42,40 @@ const PAYMENT_ENDPOINTS = [
 
 // ── Product Service ──
 export const getProducts = async (query = "") => {
-  const res = await fetch(`${PRODUCT_API}/api/products?q=${encodeURIComponent(query)}`);
+  const token = getAccessToken();
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${PRODUCT_API}/api/products?q=${encodeURIComponent(query)}`, {
+    headers
+  });
   if (!res.ok) throw new Error("Failed to fetch products");
   return res.json();
 };
 
 export const getProductById = async (id) => {
-  const res = await fetch(`${PRODUCT_API}/api/products/${id}`);
+  const token = getAccessToken();
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${PRODUCT_API}/api/products/${id}`, {
+    headers
+  });
   if (!res.ok) throw new Error("Failed to fetch product");
   return res.json();
 };
 
 export const getBackendVersion = async () => {
-  const res = await fetch(`${PRODUCT_API}/api/version`);
+  const token = getAccessToken();
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${PRODUCT_API}/api/version`, { headers });
   if (!res.ok) throw new Error("Failed to fetch version");
   return res.text();
 };
 
-// ── Cart Service ──
+// ── Cart Service ── (as-is, no changes)
 export const getCart = async (userId) => {
   const res = await fetch(`${CART_API}/api/cart/${userId}`);
   if (!res.ok) throw new Error("Failed to fetch cart");
