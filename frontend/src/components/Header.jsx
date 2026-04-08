@@ -33,7 +33,7 @@ function Header() {
         <div className="header-meta">
           <div>Backend: {backendVersion} | React: v1</div>
           <div className="guid-row">
-             Demo GUID: INITIAL-DEMO GUID
+             Demo GUID: INITIAL-DEMO 123
           </div>
         </div>
 
